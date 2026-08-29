@@ -60,6 +60,9 @@ class GenerateConfig:
     model: str = "llama3.2:3b"
     temperature: float = 0.0
     max_tokens: int = 800
+    # "ollama" or "mlxlm". When "mlxlm", generation is routed to the mlx_lm
+    # OpenAI-compatible server instead of Ollama.
+    backend: str = "ollama"
 
 
 @dataclass(frozen=True)
@@ -88,6 +91,12 @@ class GroundingConfig:
 @dataclass(frozen=True)
 class OllamaConfig:
     host: str = "http://127.0.0.1:11434"
+    timeout: int = 300
+
+
+@dataclass(frozen=True)
+class MlxLmConfig:
+    host: str = "http://127.0.0.1:8080"
     timeout: int = 300
 
 
@@ -122,6 +131,7 @@ class Config:
     retrieve: RetrieveConfig = field(default_factory=RetrieveConfig)
     grounding: GroundingConfig = field(default_factory=GroundingConfig)
     ollama: OllamaConfig = field(default_factory=OllamaConfig)
+    mlxlm: MlxLmConfig = field(default_factory=MlxLmConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
     log: LogConfig = field(default_factory=LogConfig)
     # Where each overridden value came from, for `askdocs status`.
@@ -145,6 +155,7 @@ _SECTIONS: dict[str, type] = {
     "retrieve": RetrieveConfig,
     "grounding": GroundingConfig,
     "ollama": OllamaConfig,
+    "mlxlm": MlxLmConfig,
     "eval": EvalConfig,
     "log": LogConfig,
 }

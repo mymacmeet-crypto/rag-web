@@ -14,9 +14,8 @@ what checks they hold.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator, Sequence
+from typing import Any, Iterator, Sequence
 
-from .ollama import OllamaClient
 from .retrieve import Hit
 
 SYSTEM_PROMPT = """\
@@ -65,7 +64,7 @@ def build_prompt(question: str, hits: Sequence[Hit]) -> Prompt:
 
 
 def stream_answer(
-    client: OllamaClient,
+    client: Any,
     prompt: Prompt,
     *,
     model: str,

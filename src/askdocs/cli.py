@@ -25,6 +25,7 @@ from .evaluate import (
     recall,
 )
 from .logs import QueryRecord, append, record_hits
+from .mlxlm import MlxLmClient, MlxLmError
 from .ollama import OllamaClient, OllamaError
 from .pipeline import EmptyCorpusError, build_index, changed_documents, corpus_files
 from .retrieve import search
@@ -33,6 +34,12 @@ from .store import Index, normalize_rows
 
 
 def _client(config: Config) -> OllamaClient:
+    return OllamaClient(host=config.ollama.host, timeout=config.ollama.timeout)
+
+
+def _generate_client(config: Config) -> OllamaClient | MlxLmClient:
+    if config.generate.backend == "mlxlm":
+        return MlxLmClient(host=config.mlxlm.host, timeout=config.mlxlm.timeout)
     return OllamaClient(host=config.ollama.host, timeout=config.ollama.timeout)
 
 
@@ -103,6 +110,7 @@ def cmd_ask(args: argparse.Namespace, config: Config) -> int:
 
     index = Index.load(config.index_path)
     client = _client(config)
+    gen_client = _generate_client(config)
 
     # Vectors from two different models are not comparable. Search would still
     # return five chunks - simply the wrong five, with no error anywhere.
@@ -171,13 +179,13 @@ def cmd_ask(args: argparse.Namespace, config: Config) -> int:
     if args.dry_run:
         return 0
 
-    client.require_model(config.generate.model)
+    gen_client.require_model(config.generate.model)
     _note(f"[{config.generate.model} thinking - this takes a while on CPU]\n")
 
     started = time.perf_counter()
     pieces: list[str] = []
     for piece in stream_answer(
-        client,
+        gen_client,
         prompt,
         model=config.generate.model,
         temperature=config.generate.temperature,
@@ -233,6 +241,7 @@ def cmd_ask(args: argparse.Namespace, config: Config) -> int:
 def cmd_eval(args: argparse.Namespace, config: Config) -> int:
     index = Index.load(config.index_path)
     client = _client(config)
+    gen_client = _generate_client(config)
     questions = load_questions(config.eval.questions)
 
     results = evaluate_retrieval(index, client, config, questions)
@@ -256,7 +265,7 @@ def cmd_eval(args: argparse.Namespace, config: Config) -> int:
 
     if args.refusal:
         print("\nRefusal check (needs the chat model, slow on CPU)...")
-        refusals = evaluate_refusal(index, client, config, questions)
+        refusals = evaluate_refusal(index, client, config, questions, generate_client=gen_client)
         if refusals:
             held = sum(1 for result in refusals if result.refused)
             print(f"  declined correctly: {held}/{len(refusals)}")
@@ -312,15 +321,31 @@ def cmd_status(args: argparse.Namespace, config: Config) -> int:
 
     print(f"embed      {config.embed.model}    [{config.origins.get('embed.model', 'default')}]")
     print(f"generate   {config.generate.model}    [{config.origins.get('generate.model', 'default')}]")
+    print(f"backend    {config.generate.backend}    [{config.origins.get('generate.backend', 'default')}]")
     print(f"ollama     {config.ollama.host}    [{config.origins.get('ollama.host', 'default')}]")
+    if config.generate.backend == "mlxlm":
+        print(f"mlxlm      {config.mlxlm.host}    [{config.origins.get('mlxlm.host', 'default')}]")
 
     try:
         models = _client(config).available_models()
-        for name, role in ((config.embed.model, "embed"), (config.generate.model, "generate")):
-            ok = name in models or any(m.split(":")[0] == name for m in models)
-            print(f"           {role:8} {'pulled' if ok else 'NOT PULLED - ollama pull ' + name}")
+        ok = config.embed.model in models or any(m.split(":")[0] == config.embed.model for m in models)
+        print(f"           embed     {'pulled' if ok else 'NOT PULLED - ollama pull ' + config.embed.model}")
     except OllamaError as error:
         print(f"           {error}")
+
+    if config.generate.backend == "mlxlm":
+        try:
+            _generate_client(config).require_model(config.generate.model)
+            print(f"           generate  mlxlm server reachable at {config.mlxlm.host}")
+        except MlxLmError as error:
+            print(f"           {error}")
+    else:
+        try:
+            models = _client(config).available_models()
+            ok = config.generate.model in models or any(m.split(":")[0] == config.generate.model for m in models)
+            print(f"           generate  {'pulled' if ok else 'NOT PULLED - ollama pull ' + config.generate.model}")
+        except OllamaError as error:
+            print(f"           {error}")
 
     print(f"connectors {', '.join(sorted(c.name for c in registered_connectors()))}")
     print(f"skills     {', '.join(skill.name for skill in skills.registered()) or '(none)'}")
@@ -386,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         config = _apply_overrides(args, load(args.config))
         return args.func(args, config)
-    except (ConfigError, OllamaError, EmptyCorpusError) as error:
+    except (ConfigError, OllamaError, MlxLmError, EmptyCorpusError) as error:
         print(f"{error}", file=sys.stderr)
         return 2
     except FileNotFoundError as error:

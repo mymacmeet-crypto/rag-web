@@ -34,7 +34,10 @@ batch_size = 16
 
 [generate]
 # ASKDOCS_GENERATE_MODEL overrides this.
-model       = "llama3.2:3b"
+# backend = "ollama" uses Ollama (requires GGUF model via `ollama pull`)
+# backend = "mlxlm"  uses mlx_lm.server (for HuggingFace MLX models on Apple Silicon)
+backend     = "mlxlm"
+model       = "mlx-community/Devstral-Small-2-24B-Instruct-2512-4bit"
 temperature = 0.0
 max_tokens  = 800
 
@@ -55,6 +58,12 @@ require_citation = true
 [ollama]
 # ASKDOCS_OLLAMA_HOST overrides this - point it at a GPU box if you get one.
 host    = "http://127.0.0.1:11434"
+timeout = 300
+
+[mlxlm]
+# Host for the mlx_lm OpenAI-compatible server.
+# Start with: python -m mlx_lm.server --model <model>
+host    = "http://127.0.0.1:8080"
 timeout = 300
 
 [log]

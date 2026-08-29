@@ -20,7 +20,7 @@ import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 from .answer import build_prompt, stream_answer
 from .grounding import looks_like_refusal
@@ -175,13 +175,15 @@ def evaluate_refusal(
     client: OllamaClient,
     config: Config,
     questions: Sequence[Question],
+    generate_client: Any = None,
 ) -> list[RefusalResult]:
     """Check the model declines when the corpus has no answer."""
     unanswerable = [q for q in questions if q.unanswerable]
     if not unanswerable:
         return []
 
-    client.require_model(config.generate.model)
+    gen = generate_client if generate_client is not None else client
+    gen.require_model(config.generate.model)
     vectors = normalize_rows(
         np.array(
             client.embed([q.question for q in unanswerable], config.embed.model),
@@ -202,7 +204,7 @@ def evaluate_refusal(
         prompt = build_prompt(question.question, hits)
         answer = "".join(
             stream_answer(
-                client,
+                gen,
                 prompt,
                 model=config.generate.model,
                 temperature=config.generate.temperature,
