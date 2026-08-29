@@ -1,0 +1,27 @@
+[project]
+name = "askdocs"
+version = "0.1.0"
+description = "Offline question answering over an archived documentation corpus"
+requires-python = ">=3.11"
+license = { text = "AGPL-3.0-or-later" }
+
+# numpy is the only hard dependency. Everything else - HTTP to Ollama, JSONL,
+# TOML config, BM25, the CLI - is standard library, so the whole tool installs
+# and runs on a machine with no network.
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+askdocs = "askdocs.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

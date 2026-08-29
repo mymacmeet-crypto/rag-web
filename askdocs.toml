@@ -1,0 +1,65 @@
+# askdocs configuration.
+#
+# Precedence:  CLI flag  >  environment variable  >  this file  >  default
+# Run `askdocs env` to see every variable and where each value came from.
+
+[corpus]
+# Drop folder. Any supported file placed in here is indexed.
+dir    = "./corpus"
+source = "local"
+# Optional: a single file elsewhere, indexed in addition to the folder.
+# dataset = "../web-archiver/archive/www.aem.live/dataset.jsonl"
+
+[index]
+path    = "./index"
+# "flat" keeps chunks and vectors in plain files. Measured on this machine:
+#     678 chunks     2 MB    1.2 ms per search
+#  10,000 chunks    29 MB    1.4 ms
+# 100,000 chunks   293 MB   15.6 ms
+# Exact, no server, no dependency. Revisit past ~100k chunks.
+backend = "flat"
+
+[chunk]
+target_tokens   = 700
+overlap_tokens  = 80
+oversize_factor = 1.4
+
+[embed]
+# ASKDOCS_EMBED_MODEL overrides this.
+# CHANGING IT INVALIDATES THE INDEX - question and chunk vectors must come
+# from the same model. `askdocs ask` refuses on a mismatch rather than
+# silently returning the wrong chunks.
+model      = "nomic-embed-text"
+batch_size = 16
+
+[generate]
+# ASKDOCS_GENERATE_MODEL overrides this.
+model       = "llama3.2:3b"
+temperature = 0.0
+max_tokens  = 800
+
+[retrieve]
+top_k      = 5
+candidates = 25
+rrf_k      = 60
+
+[grounding]
+# Below this fused score, refuse without calling the model at all. Handing a
+# small model five irrelevant chunks is asking it to invent something.
+min_score        = 0.0155
+# Reject an answer citing a URL that was never retrieved.
+verify_citations = true
+# A substantive answer supported by nothing is not an answer.
+require_citation = true
+
+[ollama]
+# ASKDOCS_OLLAMA_HOST overrides this - point it at a GPU box if you get one.
+host    = "http://127.0.0.1:11434"
+timeout = 300
+
+[log]
+path = "./logs/queries.jsonl"
+
+[eval]
+questions  = "./eval/questions.yaml"
+min_recall = 0.80

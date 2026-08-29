@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
+venv/
+
+# Your documents. Not committed: a corpus is usually someone else's content,
+# and it is regenerated rather than shared. See README for how to populate it.
+/corpus/*
+!/corpus/_README.md
+
+# Built artefacts - regenerate with `askdocs index`
+/index/
+/index.tmp/
+/index.old/
+/logs/

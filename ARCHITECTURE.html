@@ -1,0 +1,1010 @@
+<title>How askdocs Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+  :root {
+    color-scheme: light;
+    --page:        #f6f7f9;
+    --panel:       #ffffff;
+    --panel-sunk:  #f1f3f6;
+    --ink:         #12161a;
+    --ink-2:       #586471;
+    --ink-3:       #8a949e;
+    --rule:        #dfe3e8;
+    --rule-soft:   #ebeef1;
+    --accent:      #2a78d6;
+    --accent-soft: #eaf1fb;
+    --guard:       #104281;
+    --once:        #86b6ef;
+    --shadow: 0 1px 2px rgba(18,22,26,.05), 0 8px 24px -16px rgba(18,22,26,.18);
+    --display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+    --body:    "IBM Plex Serif", Georgia, "Times New Roman", serif;
+    --mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --measure: 66ch;
+    --wide:    1020px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0f1215; --panel: #15181b; --panel-sunk: #1b1f23;
+      --ink: #eef1f4; --ink-2: #a2adb8; --ink-3: #6f7b86;
+      --rule: #252b31; --rule-soft: #1e2328;
+      --accent: #3987e5; --accent-soft: #16283d;
+      --guard: #5598e7; --once: #b7d3f6;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0f1215; --panel: #15181b; --panel-sunk: #1b1f23;
+    --ink: #eef1f4; --ink-2: #a2adb8; --ink-3: #6f7b86;
+    --rule: #252b31; --rule-soft: #1e2328;
+    --accent: #3987e5; --accent-soft: #16283d;
+    --guard: #5598e7; --once: #b7d3f6;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: var(--body); font-size: 17px; line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--wide); margin: 0 auto; padding: 0 28px 96px; }
+  p, ul, ol { max-width: var(--measure); }
+  p { margin: 0 0 1.1em; }
+  ul, ol { margin: 0 0 1.2em; padding-left: 1.3em; }
+  li { margin-bottom: .45em; }
+  li::marker { color: var(--ink-3); }
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+  code, .mono { font-family: var(--mono); }
+  p code, li code, td code, dd code {
+    font-size: .86em; background: var(--panel-sunk);
+    border: 1px solid var(--rule-soft); border-radius: 3px; padding: .1em .34em;
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  h1, h2, h3, h4 {
+    font-family: var(--display); font-weight: 700; line-height: 1.1;
+    text-wrap: balance; margin: 0; letter-spacing: -.005em;
+  }
+  h1 { font-size: clamp(2.7rem, 6.4vw, 4.3rem); letter-spacing: -.022em; }
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.3rem); margin-bottom: .5rem; }
+  h3 { font-size: 1.24rem; font-weight: 600; margin-bottom: .35rem; }
+  h4 { font-size: 1rem; font-weight: 600; margin-bottom: .3rem; }
+
+  .eyebrow {
+    font-family: var(--mono); font-size: .705rem; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 .85rem; display: block;
+  }
+
+  header.masthead {
+    border-bottom: 1px solid var(--rule); padding: 52px 0 40px; margin-bottom: 56px;
+  }
+  .masthead .lede {
+    font-size: 1.22rem; line-height: 1.55; color: var(--ink-2);
+    max-width: 58ch; margin: 1.35rem 0 0;
+  }
+  .verdict { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px;
+             font-family: var(--mono); font-size: .8rem; }
+  .chip {
+    display: inline-flex; align-items: baseline; gap: .5em;
+    border: 1px solid var(--rule); background: var(--panel);
+    border-radius: 2px; padding: .5em .8em; white-space: nowrap;
+  }
+  .chip b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .chip span { color: var(--ink-3); }
+
+  section { margin-bottom: 68px; }
+  section > h2 + p.sub {
+    color: var(--ink-2); font-size: 1.05rem; margin-bottom: 1.9rem; max-width: 62ch;
+  }
+  hr.rule { border: 0; border-top: 1px solid var(--rule); margin: 0 0 56px; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--rule);
+    box-shadow: var(--shadow); padding: 26px; margin: 0 0 26px;
+  }
+  .note {
+    border-left: 2px solid var(--accent); background: var(--accent-soft);
+    padding: 16px 20px; margin: 0 0 26px; max-width: var(--measure);
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .note .tag {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent); display: block; margin-bottom: .5em;
+  }
+
+  figure { margin: 0; }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; }
+  figcaption { font-size: .88rem; color: var(--ink-2); margin-top: 14px; max-width: 66ch; }
+  .figscroll { overflow-x: auto; }
+
+  .box     { fill: var(--panel-sunk); stroke: var(--rule); stroke-width: 1; }
+  .box-hi  { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  .box-guard { fill: var(--panel-sunk); stroke: var(--guard); stroke-width: 1.6; }
+  .box-t   { font-family: var(--display); font-size: 14.5px; font-weight: 700; fill: var(--ink); }
+  .box-s   { font-family: var(--mono); font-size: 10px; fill: var(--ink-3); }
+  .edge    { stroke: var(--ink-3); stroke-width: 1.4; fill: none; }
+  .edge-hi { stroke: var(--accent); stroke-width: 1.7; fill: none; }
+  .edge-g  { stroke: var(--guard); stroke-width: 1.7; fill: none; }
+  .edge-t  { font-family: var(--mono); font-size: 10px; fill: var(--ink-3); }
+  .edge-t.g { fill: var(--guard); }
+  .lane-t  { font-family: var(--mono); font-size: 11px; fill: var(--ink-3); letter-spacing: .12em; }
+
+  .stagebtn { cursor: pointer; }
+  .stagebtn:hover .box { stroke: var(--ink-3); }
+  .stagebtn[aria-pressed="true"] .box { stroke: var(--accent); stroke-width: 1.6; fill: var(--accent-soft); }
+
+  .stage-read {
+    margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--rule-soft);
+    min-height: 150px;
+  }
+  .stage-read h4 { margin-bottom: .5rem; }
+  .stage-read p { font-size: .96rem; color: var(--ink-2); margin-bottom: .8em; max-width: 64ch; }
+  .stage-read .file {
+    font-family: var(--mono); font-size: .72rem; color: var(--ink-3);
+    display: block; margin-bottom: .9em;
+  }
+  .stage-read ul { font-size: .93rem; margin-bottom: 0; }
+  .stage-read li { color: var(--ink-2); }
+
+  pre.code {
+    font-family: var(--mono); font-size: .74rem; line-height: 1.6;
+    background: var(--panel-sunk); border: 1px solid var(--rule-soft);
+    border-radius: 3px; padding: 16px 18px; margin: 0 0 20px;
+    overflow-x: auto; white-space: pre; color: var(--ink-2);
+  }
+  pre.code b { color: var(--accent); font-weight: 500; }
+  pre.code i { color: var(--ink-3); font-style: normal; }
+  pre.code u { color: var(--guard); text-decoration: none; font-weight: 500; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--panel); margin-bottom: 26px; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 520px; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  th { font-family: var(--mono); font-size: .68rem; letter-spacing: .11em;
+       text-transform: uppercase; color: var(--ink-3); font-weight: 500;
+       border-bottom: 1px solid var(--rule); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.no { color: var(--ink-3); }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 26px;
+  }
+  .stat { background: var(--panel); padding: 18px; }
+  .stat .v { font-family: var(--display); font-size: 1.95rem; font-weight: 700;
+             line-height: 1; font-variant-numeric: tabular-nums; display: block; }
+  .stat .k { font-family: var(--mono); font-size: .67rem; letter-spacing: .11em;
+             text-transform: uppercase; color: var(--ink-3); margin-top: .6em; display: block; }
+
+  .guards { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .guard { background: var(--panel); padding: 20px 22px; display: grid;
+           grid-template-columns: 30px 1fr; gap: 16px; }
+  .guard .n { font-family: var(--mono); font-size: .78rem; color: var(--guard);
+              padding-top: .2em; font-weight: 500; }
+  .guard h4 { margin-bottom: .3rem; }
+  .guard p { font-size: .95rem; color: var(--ink-2); margin: 0; max-width: 60ch; }
+  .guard p + p { margin-top: .6em; }
+
+  dl.gloss dt { font-family: var(--mono); font-size: .8rem; color: var(--ink); margin-top: 1.1em; }
+  dl.gloss dd { margin: .25em 0 0; color: var(--ink-2); font-size: .95rem; max-width: 62ch; }
+
+  footer {
+    border-top: 1px solid var(--rule); padding-top: 24px;
+    font-family: var(--mono); font-size: .73rem; color: var(--ink-3); line-height: 1.7;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <span class="eyebrow">askdocs &middot; architecture</span>
+    <h1>How askdocs Works</h1>
+    <p class="lede">
+      It answers questions about your documentation, on your machine, with no
+      internet. This page explains every moving part in plain English &mdash; what
+      each one does, and why it is built that way.
+    </p>
+    <div class="verdict">
+      <span class="chip"><b>678</b><span>chunks</span></span>
+      <span class="chip"><b>70</b><span>tests</span></span>
+      <span class="chip"><b>1</b><span>dependency</span></span>
+      <span class="chip"><b>0</b><span>databases</span></span>
+    </div>
+  </header>
+
+  <section>
+    <span class="eyebrow">The idea</span>
+    <h2>It looks things up. It does not learn.</h2>
+
+    <p>
+      The single most useful thing to understand: <strong>the model was never
+      trained on your documents and never will be.</strong> Nothing about it
+      changes, ever.
+    </p>
+    <p>
+      When you ask a question, askdocs finds the handful of paragraphs most
+      likely to hold the answer, pastes them into the prompt, and asks the model
+      to answer using only those. That is the whole trick. If you pasted the
+      right paragraph into a chat window by hand and asked your question
+      underneath it, you would have done the same thing.
+    </p>
+    <p>
+      Everything on this page is machinery for doing that automatically, across
+      678 chunks, reliably, without the model making things up.
+    </p>
+
+    <div class="note">
+      <span class="tag">Three words used throughout</span>
+      <dl class="gloss" style="margin:0">
+        <dt>chunk</dt>
+        <dd>A slice of a page &mdash; a few paragraphs. Search works on slices, because you want to hand the model one relevant passage, not a 70,000-character document.</dd>
+        <dt>embedding</dt>
+        <dd>A list of numbers describing what a piece of text means. Similar meanings get similar numbers, so "how do I make it fast" can find a page about performance without sharing a single word with it.</dd>
+        <dt>grounded</dt>
+        <dd>An answer is grounded when everything it says came from the retrieved sources. Ungrounded means the model invented something. Preventing that is most of the work.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">The shape of it</span>
+    <h2>Two phases that run at very different times</h2>
+    <p class="sub">
+      Almost every confusion about systems like this comes from mixing these up.
+      One runs rarely and is slow. The other runs constantly and is fast.
+    </p>
+
+    <div class="panel" style="max-width:none">
+      <figure class="figscroll">
+        <svg viewBox="0 0 980 250" role="img" aria-label="Two phases: a build phase that runs rarely and writes an index, and an ask phase that runs on every question and only reads that index.">
+          <defs>
+            <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--ink-3)"></path>
+            </marker>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--accent)"></path>
+            </marker>
+          </defs>
+
+          <rect x="20" y="18" width="4" height="13" fill="var(--once)"></rect>
+          <text class="lane-t" x="34" y="30">BUILD &mdash; RUNS WHEN DOCUMENTS CHANGE</text>
+          <rect class="box" x="20" y="46" width="150" height="56" rx="3"></rect>
+          <text class="box-t" x="36" y="72">corpus/</text>
+          <text class="box-s" x="36" y="90">your files</text>
+          <path class="edge" d="M 170 74 L 206 74" marker-end="url(#a)"></path>
+          <rect class="box" x="210" y="46" width="330" height="56" rx="3"></rect>
+          <text class="box-t" x="228" y="72">clean &rarr; chunk &rarr; embed</text>
+          <text class="box-s" x="228" y="90">minutes, once</text>
+          <path class="edge" d="M 540 74 L 576 74" marker-end="url(#a)"></path>
+
+          <rect class="box-hi" x="580" y="46" width="180" height="160" rx="3"></rect>
+          <text class="box-t" x="598" y="72">index/</text>
+          <text class="box-s" x="598" y="90">chunks.jsonl</text>
+          <text class="box-s" x="598" y="106">vectors.npy</text>
+          <text class="box-s" x="598" y="122">manifest.json</text>
+          <text class="box-s" x="598" y="146">678 chunks</text>
+          <text class="box-s" x="598" y="162">about 2 MB</text>
+          <text class="box-s" x="598" y="186">written atomically</text>
+
+          <rect x="20" y="128" width="4" height="13" fill="var(--guard)"></rect>
+          <text class="lane-t" x="34" y="140">ASK &mdash; RUNS ON EVERY QUESTION</text>
+          <rect class="box" x="20" y="156" width="150" height="56" rx="3"></rect>
+          <text class="box-t" x="36" y="182">a question</text>
+          <text class="box-s" x="36" y="200">typed by you</text>
+          <path class="edge-hi" d="M 170 184 L 206 184" marker-end="url(#ah)"></path>
+          <rect class="box" x="210" y="156" width="330" height="56" rx="3"></rect>
+          <text class="box-t" x="228" y="182">search &rarr; check &rarr; answer</text>
+          <text class="box-s" x="228" y="200">seconds</text>
+          <path class="edge-hi" d="M 578 184 L 544 184" marker-end="url(#ah)"></path>
+          <text class="edge-t" x="790" y="120">reads only</text>
+
+          <path class="edge" d="M 800 74 L 862 74" marker-end="url(#a)"></path>
+          <rect class="box" x="866" y="46" width="96" height="56" rx="3"></rect>
+          <text class="box-t" x="880" y="72">disk</text>
+          <text class="box-s" x="880" y="90">yours</text>
+        </svg>
+        <figcaption>
+          The ask phase never touches your source files, never reaches the
+          network, and never changes the index. It only reads.
+        </figcaption>
+      </figure>
+    </div>
+
+    <p>
+      Building is the slow part &mdash; it has to read every document and turn every
+      chunk into numbers. Asking is fast because all that work is already done
+      and sitting in a file.
+    </p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">Build &middot; click a stage</span>
+    <h2>What happens when you run <code>askdocs index</code></h2>
+    <p class="sub">
+      Four stages. Each one is a separate file you can read, test and change on
+      its own.
+    </p>
+
+    <div class="panel" style="max-width:none">
+      <figure class="figscroll">
+        <svg viewBox="0 0 980 130" role="img" aria-label="The build pipeline: discover, clean, chunk, embed, then save to the index.">
+          <g class="stagebtn" id="b1" role="button" tabindex="0" aria-pressed="true">
+            <rect class="box" x="20" y="30" width="168" height="62" rx="3"></rect>
+            <text class="box-t" x="38" y="57">1 &middot; Discover</text>
+            <text class="box-s" x="38" y="76">read your files</text>
+          </g>
+          <path class="edge" d="M 188 61 L 214 61" marker-end="url(#a)"></path>
+          <g class="stagebtn" id="b2" role="button" tabindex="0" aria-pressed="false">
+            <rect class="box" x="218" y="30" width="168" height="62" rx="3"></rect>
+            <text class="box-t" x="236" y="57">2 &middot; Clean</text>
+            <text class="box-s" x="236" y="76">remove the junk</text>
+          </g>
+          <path class="edge" d="M 386 61 L 412 61" marker-end="url(#a)"></path>
+          <g class="stagebtn" id="b3" role="button" tabindex="0" aria-pressed="false">
+            <rect class="box" x="416" y="30" width="168" height="62" rx="3"></rect>
+            <text class="box-t" x="434" y="57">3 &middot; Chunk</text>
+            <text class="box-s" x="434" y="76">cut into slices</text>
+          </g>
+          <path class="edge" d="M 584 61 L 610 61" marker-end="url(#a)"></path>
+          <g class="stagebtn" id="b4" role="button" tabindex="0" aria-pressed="false">
+            <rect class="box" x="614" y="30" width="168" height="62" rx="3"></rect>
+            <text class="box-t" x="632" y="57">4 &middot; Embed</text>
+            <text class="box-s" x="632" y="76">turn to numbers</text>
+          </g>
+          <path class="edge" d="M 782 61 L 808 61" marker-end="url(#a)"></path>
+          <rect class="box-hi" x="812" y="30" width="150" height="62" rx="3"></rect>
+          <text class="box-t" x="830" y="57">Save</text>
+          <text class="box-s" x="830" y="76">index/</text>
+        </svg>
+        <figcaption>Click any stage to see what it does and where it lives.</figcaption>
+      </figure>
+      <div class="stage-read" id="buildRead" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">Ask &middot; click a step</span>
+    <h2>What happens when you run <code>askdocs ask</code></h2>
+    <p class="sub">
+      Six steps, and two of them exist purely to stop the model inventing things.
+    </p>
+
+    <div class="panel" style="max-width:none">
+      <figure class="figscroll">
+        <svg viewBox="0 0 980 210" role="img" aria-label="The ask pipeline: skills, embed the question, hybrid search, a confidence gate, generation, then a grounding check.">
+          <g class="stagebtn" id="q1" role="button" tabindex="0" aria-pressed="true">
+            <rect class="box" x="20" y="26" width="150" height="60" rx="3"></rect>
+            <text class="box-t" x="36" y="52">1 &middot; Skills</text>
+            <text class="box-s" x="36" y="71">shortcut?</text>
+          </g>
+          <path class="edge" d="M 170 56 L 196 56" marker-end="url(#a)"></path>
+          <g class="stagebtn" id="q2" role="button" tabindex="0" aria-pressed="false">
+            <rect class="box" x="200" y="26" width="150" height="60" rx="3"></rect>
+            <text class="box-t" x="216" y="52">2 &middot; Embed</text>
+            <text class="box-s" x="216" y="71">question to numbers</text>
+          </g>
+          <path class="edge" d="M 350 56 L 376 56" marker-end="url(#a)"></path>
+          <g class="stagebtn" id="q3" role="button" tabindex="0" aria-pressed="false">
+            <rect class="box" x="380" y="26" width="150" height="60" rx="3"></rect>
+            <text class="box-t" x="396" y="52">3 &middot; Search</text>
+            <text class="box-s" x="396" y="71">two ways at once</text>
+          </g>
+          <path class="edge-g" d="M 530 56 L 556 56" marker-end="url(#a)"></path>
+          <g class="stagebtn" id="q4" role="button" tabindex="0" aria-pressed="false">
+            <rect class="box-guard" x="560" y="26" width="150" height="60" rx="3"></rect>
+            <text class="box-t" x="576" y="52">4 &middot; Gate</text>
+            <text class="box-s" x="576" y="71">good enough?</text>
+          </g>
+          <path class="edge" d="M 710 56 L 736 56" marker-end="url(#a)"></path>
+          <g class="stagebtn" id="q5" role="button" tabindex="0" aria-pressed="false">
+            <rect class="box" x="740" y="26" width="150" height="60" rx="3"></rect>
+            <text class="box-t" x="756" y="52">5 &middot; Answer</text>
+            <text class="box-s" x="756" y="71">the slow bit</text>
+          </g>
+
+          <path class="edge-g" d="M 815 86 L 815 116 L 640 116 L 640 132" marker-end="url(#a)"></path>
+          <g class="stagebtn" id="q6" role="button" tabindex="0" aria-pressed="false">
+            <rect class="box-guard" x="490" y="136" width="300" height="56" rx="3"></rect>
+            <text class="box-t" x="508" y="162">6 &middot; Check what it said</text>
+            <text class="box-s" x="508" y="180">every citation real? anything unsupported?</text>
+          </g>
+
+          <path class="edge-g" d="M 635 86 L 635 100 L 300 100 L 300 132" marker-end="url(#a)"></path>
+          <rect class="box" x="150" y="136" width="300" height="56" rx="3"></rect>
+          <text class="box-t" x="168" y="162">Refuse, without asking the model</text>
+          <text class="box-s" x="168" y="180">nothing scored well enough &mdash; saves 40 seconds too</text>
+        </svg>
+        <figcaption>
+          Steps 4 and 6 are the guards. Neither depends on the model behaving
+          well &mdash; they are ordinary code that checks the model's work.
+        </figcaption>
+      </figure>
+      <div class="stage-read" id="askRead" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">The important part</span>
+    <h2>How it avoids making things up</h2>
+    <p class="sub">
+      A small model running on your laptop does not go quiet when it is unsure.
+      It writes something fluent, plausible and wrong, with exactly the same
+      confidence as a correct answer. Telling it not to is not enough.
+    </p>
+
+    <p>
+      The prompt does say &ldquo;use only these sources, and if they do not
+      answer the question, say so&rdquo;. A 3B model obeys that <em>most</em> of
+      the time. Most of the time is not something you can put in front of people,
+      so there are three checks that are plain code:
+    </p>
+
+    <div class="guards">
+      <div class="guard">
+        <span class="n">01</span>
+        <div>
+          <h4>Refuse before even asking</h4>
+          <p>
+            If nothing found scores above a floor, askdocs answers
+            &ldquo;the documentation does not cover this&rdquo; without calling
+            the model at all.
+          </p>
+          <p>
+            Handing five irrelevant paragraphs to a small model is asking it to
+            invent something, and it will oblige. This also saves you the
+            40 seconds of waiting.
+          </p>
+        </div>
+      </div>
+      <div class="guard">
+        <span class="n">02</span>
+        <div>
+          <h4>Check every link it cites</h4>
+          <p>
+            After the answer is written, every URL in it is compared against
+            what was actually retrieved. A cited link that was never in the
+            prompt was invented &mdash; there is nowhere else it could have come from.
+          </p>
+          <p>
+            This is the most damaging failure of all, because a citation is
+            exactly what makes an answer look trustworthy.
+          </p>
+        </div>
+      </div>
+      <div class="guard">
+        <span class="n">03</span>
+        <div>
+          <h4>Refuse to accept unsupported claims</h4>
+          <p>
+            A long answer that cites nothing is not an answer. Either it came
+            from the sources, in which case it can name them, or it did not.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top:26px">
+      When a check fails you see a blunt warning, the reason is written to the
+      query log, and the command exits with an error code so scripts can catch
+      it. Nothing is quietly swallowed.
+    </p>
+
+    <pre class="code">$ askdocs ask "what is the SLA uptime guarantee?"
+
+<u>The documentation provided does not answer this.</u>
+
+<i>[best score 0.0091 &lt; floor 0.0155]</i>
+<i>[retrieved 12ms, no model call]</i></pre>
+
+    <div class="note">
+      <span class="tag">And it is tested, not assumed</span>
+      <p>
+        <code>eval/questions.yaml</code> contains four questions the corpus
+        deliberately cannot answer &mdash; things like the capital of Australia, and
+        a plausible-sounding Kubernetes question. <code>askdocs eval --refusal</code>
+        checks the model declines all four. That is the only way to know the
+        guards actually hold.
+      </p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">Search</span>
+    <h2>Why it searches two ways at once</h2>
+
+    <p>
+      There are two ways to find text, and each is bad at what the other is good
+      at:
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Method</th><th>Good at</th><th>Bad at</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>By meaning</strong><br><span class="mono" style="font-size:.8em">vectors</span></td>
+            <td>"how do I make it fast" finding a page about performance, with no shared words</td>
+            <td class="no">Rare exact strings. <code>AEM_BACKEND_FETCH_FAILED</code> means nothing to it</td>
+          </tr>
+          <tr>
+            <td><strong>By keyword</strong><br><span class="mono" style="font-size:.8em">BM25</span></td>
+            <td>Exact identifiers, error codes, file names, config keys</td>
+            <td class="no">Anything worded differently from the document</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      A developer searching documentation does both constantly, so askdocs runs
+      both and merges the results. The merge is done <strong>by position, not by
+      score</strong> &mdash; a "0.82 similar" and a "14.3 keyword score" are not
+      comparable numbers, and trying to weigh them directly means inventing a
+      conversion factor and re-tuning it forever. Ranking sidesteps that: first
+      place is first place either way.
+    </p>
+
+    <div class="note">
+      <span class="tag">A concrete example</span>
+      <p>
+        The keyword index stores <code>AEM_BACKEND_FETCH_FAILED</code> both whole
+        <em>and</em> split into <code>backend</code>, <code>fetch</code>,
+        <code>failed</code>. So pasting the exact error finds it, and so does
+        describing it in words.
+      </p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">Storage</span>
+    <h2>Why there is no database</h2>
+    <p class="sub">
+      This is the decision people question most, so here are the measurements
+      rather than an opinion.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Corpus size</th><th>Memory</th><th>Time to search all of it, exactly</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">678 chunks &mdash; you are here</td><td class="num">2 MB</td><td class="num">1.2 ms</td></tr>
+          <tr><td class="num">10,000</td><td class="num">29 MB</td><td class="num">1.4 ms</td></tr>
+          <tr><td class="num">100,000</td><td class="num">293 MB</td><td class="num">15.6 ms</td></tr>
+          <tr><td class="num">1,000,000</td><td class="num">2.9 GB</td><td class="no">will not fit in 16 GB RAM</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Vector databases exist to make search <strong>approximate</strong>, because
+      checking millions of vectors one by one is too slow. You do not have
+      millions. At your size askdocs checks <em>every</em> chunk and gets the
+      exactly correct answer in about a millisecond.
+    </p>
+    <p>
+      Adding one would mean a large dependency to install offline, a server to
+      keep running, another thing to back up, and slightly worse answers &mdash; in
+      exchange for nothing. The storage code sits behind one setting, so if the
+      corpus ever grows past about 100,000 chunks, swapping it is a one-file job.
+    </p>
+
+    <p>Three plain files, written atomically so an interrupted rebuild never corrupts a working index:</p>
+
+    <pre class="code">index/
+  chunks.jsonl     the text, plus url, title, breadcrumb, anchor
+  vectors.npy      the numbers
+  manifest.json    which model built it, and a fingerprint per document</pre>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">Adding things</span>
+    <h2>The two ways to extend it</h2>
+    <p class="sub">
+      Both are registries: write one file, import it, done. Neither requires
+      touching the pipeline.
+    </p>
+
+    <div class="panel" style="max-width:none">
+      <figure class="figscroll">
+        <svg viewBox="0 0 980 190" role="img" aria-label="Connectors bring documents into the pipeline; skills answer questions coming out of it.">
+          <rect class="box" x="20" y="30" width="150" height="130" rx="3"></rect>
+          <text class="box-t" x="38" y="56">Connectors</text>
+          <text class="box-s" x="38" y="76">bring documents IN</text>
+          <text class="box-s" x="38" y="102">jsonl</text>
+          <text class="box-s" x="38" y="118">markdown</text>
+          <text class="box-s" x="38" y="140">&hellip; confluence?</text>
+
+          <path class="edge" d="M 170 95 L 216 95" marker-end="url(#a)"></path>
+          <rect class="box-hi" x="220" y="55" width="330" height="80" rx="3"></rect>
+          <text class="box-t" x="240" y="88">the pipeline</text>
+          <text class="box-s" x="240" y="108">clean, chunk, embed, search &mdash; unchanged</text>
+
+          <path class="edge" d="M 550 95 L 596 95" marker-end="url(#a)"></path>
+          <rect class="box" x="600" y="55" width="150" height="80" rx="3"></rect>
+          <text class="box-t" x="618" y="88">an answer</text>
+          <text class="box-s" x="618" y="108">with citations</text>
+
+          <rect class="box" x="790" y="30" width="170" height="130" rx="3"></rect>
+          <text class="box-t" x="808" y="56">Skills</text>
+          <text class="box-s" x="808" y="76">answer OUT, directly</text>
+          <text class="box-s" x="808" y="102">corpus-info</text>
+          <text class="box-s" x="808" y="124">&hellip; release notes?</text>
+          <text class="box-s" x="808" y="146">&hellip; live lookups?</text>
+          <path class="edge" d="M 786 95 L 756 95" marker-end="url(#a)"></path>
+        </svg>
+        <figcaption>
+          A connector is where documents come from. A skill is a question
+          answered without retrieval at all.
+        </figcaption>
+      </figure>
+    </div>
+
+    <h3 style="margin-top:32px">Connectors &mdash; new kinds of document</h3>
+    <p>
+      Two exist: <code>.jsonl</code> and <code>.md</code>. A connector answers
+      two questions &mdash; "is this file mine?" and "what documents are in it?" &mdash;
+      and everything downstream is unchanged, because it only ever sees a
+      <code>Document</code>.
+    </p>
+
+    <pre class="code"><b>@register</b>
+class ConfluenceConnector:
+    name = "confluence"
+    def claims(self, path):        <i># is this file mine?</i>
+        return path.suffix == ".confluence"
+    def load(self, path, source):  <i># yield Documents</i>
+        ...</pre>
+
+    <h3 style="margin-top:32px">Skills &mdash; questions retrieval cannot answer</h3>
+    <p>
+      Ask "how many pages are indexed?" and searching the documents is useless:
+      the documents do not know they were indexed. Without a skill, retrieval
+      returns five arbitrary chunks and a small model invents a number from them
+      &mdash; the exact failure this project exists to prevent.
+    </p>
+    <p>
+      Skills run <em>before</em> retrieval. The first one to claim a question
+      answers it and generation is skipped entirely, so the answer is instant. A
+      skill that crashes is skipped rather than taking the question down.
+    </p>
+
+    <pre class="code">$ askdocs ask "how many pages are indexed?"
+
+The index holds 678 chunks from 183 documents (source: local).
+Built 2026-08-26 using the nomic-embed-text model at 768 dimensions.
+
+<i>[answered by the corpus-info skill &mdash; no model call]</i></pre>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">Settings</span>
+    <h2>Where settings come from</h2>
+
+    <p>
+      Four places, and the one furthest left always wins:
+    </p>
+
+    <pre class="code">command line flag   &rarr;   environment variable   &rarr;   askdocs.toml   &rarr;   built-in default</pre>
+
+    <p>
+      So you can keep sensible values in the file, override them per machine
+      with environment variables, and override <em>those</em> for a single
+      command:
+    </p>
+
+    <pre class="code"><b>ASKDOCS_GENERATE_MODEL</b>=qwen2.5:7b askdocs ask "..."
+<b>ASKDOCS_OLLAMA_HOST</b>=http://gpu-box:11434 askdocs index
+askdocs ask "..." <b>--model</b> llama3.1:8b <b>--top-k</b> 8</pre>
+
+    <p>
+      Run <code>askdocs env</code> and it lists every variable, its current
+      value, <em>and where that value came from</em>. A setting that silently
+      fails to apply is worse than one that is obviously broken.
+    </p>
+
+    <div class="note">
+      <span class="tag">One setting behaves differently on purpose</span>
+      <p>
+        Changing the <strong>embedding</strong> model invalidates the whole
+        index. Numbers from two different models are not comparable, so search
+        would still return five chunks &mdash; simply the wrong five, with no error
+        anywhere. askdocs refuses to run and tells you to rebuild instead.
+      </p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">Knowing it works</span>
+    <h2>How quality is measured</h2>
+
+    <p>
+      One number matters most: <strong>how often the correct page appears in the
+      five chunks retrieved.</strong> Almost every bad answer is a retrieval
+      failure wearing a generation costume &mdash; if the right paragraph never
+      reaches the prompt, no amount of prompt tuning saves the answer.
+    </p>
+    <p>
+      <code>eval/questions.yaml</code> holds 30 real questions with the URL that
+      answers each. Two rules keep it honest: the questions are
+      <strong>paraphrases</strong>, never copies of headings (copying makes the
+      score trivially perfect and meaningless), and four of them are
+      deliberately unanswerable.
+    </p>
+
+    <pre class="code">$ askdocs eval
+
+Retrieval over 26 questions, top-5:
+  recall@5  <b>85%</b>
+  MRR       0.71
+
+PASS: recall 85% meets the 80% threshold.</pre>
+
+    <p>
+      It exits non-zero below the threshold, so it can gate a commit or a build
+      the same way a test suite does.
+    </p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">The map</span>
+    <h2>Every file, and what it is for</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>Lines</th><th>In plain English</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">normalize.py</td><td class="num">349</td><td>Strips the layout junk out of documents. The messiest file, and the one that decides corpus quality.</td></tr>
+          <tr><td class="num">chunk.py</td><td class="num">234</td><td>Cuts documents into slices at headings, and labels each with a breadcrumb.</td></tr>
+          <tr><td class="num">store.py</td><td class="num">205</td><td>Holds the chunks, the numbers, and the keyword index. Saves and loads them safely.</td></tr>
+          <tr><td class="num">retrieve.py</td><td class="num">79</td><td>Searches both ways and merges the two lists.</td></tr>
+          <tr><td class="num">grounding.py</td><td class="num">142</td><td>The three checks that stop invented answers.</td></tr>
+          <tr><td class="num">answer.py</td><td class="num">86</td><td>Builds the prompt out of the retrieved sources.</td></tr>
+          <tr><td class="num">ollama.py</td><td class="num">141</td><td>Talks to the local models. No libraries &mdash; just the standard library.</td></tr>
+          <tr><td class="num">pipeline.py</td><td class="num">147</td><td>Runs the build stages in order.</td></tr>
+          <tr><td class="num">config.py</td><td class="num">271</td><td>Settings, with the four-level precedence above.</td></tr>
+          <tr><td class="num">evaluate.py</td><td class="num">219</td><td>Measures retrieval quality and refusal behaviour.</td></tr>
+          <tr><td class="num">cli.py</td><td class="num">401</td><td>The commands you type.</td></tr>
+          <tr><td class="num">sources/</td><td class="num">251</td><td>Connectors &mdash; where documents come from.</td></tr>
+          <tr><td class="num">skills/</td><td class="num">146</td><td>Skills &mdash; questions answered without retrieval.</td></tr>
+          <tr><td class="num">logs.py</td><td class="num">65</td><td>Writes every question and what was retrieved to a file.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="v">183</span><span class="k">Documents</span></div>
+      <div class="stat"><span class="v">678</span><span class="k">Chunks</span></div>
+      <div class="stat"><span class="v">459</span><span class="k">Median tokens</span></div>
+      <div class="stat"><span class="v">132</span><span class="k">Deep links</span></div>
+      <div class="stat"><span class="v">70</span><span class="k">Tests</span></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <span class="eyebrow">Honest status</span>
+    <h2>What is proven and what is not</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Part</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>Cleaning, chunking, breadcrumbs, anchors</td><td>Run against all 183 real pages</td></tr>
+          <tr><td>Keyword search, storage, rank fusion</td><td>Covered by tests</td></tr>
+          <tr><td>The three grounding checks</td><td>Covered by tests</td></tr>
+          <tr><td>Settings and precedence</td><td>Covered by tests</td></tr>
+          <tr><td>Connectors and skills</td><td>Covered by tests</td></tr>
+          <tr><td class="no">Embedding, answering, evaluation</td><td class="no">Written but never run &mdash; Ollama is not installed yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Everything that does not need a model is verified against your real data.
+      Everything that talks to a model is written against Ollama's documented
+      API and has not executed once. Install Ollama, run
+      <code>askdocs index</code>, and the first real run will find whatever is
+      wrong there.
+    </p>
+
+    <div class="note">
+      <span class="tag">One thing worth checking first</span>
+      <p>
+        Your machine reports a second display device in an error state. If that
+        is a real graphics card with a missing driver, answers would go from
+        about 40 seconds to a few seconds, and a larger, more accurate model
+        would become practical. It is the biggest possible improvement for no
+        code at all.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    askdocs 0.1.0 &middot; measured 2026-08-26 against 183 pages of www.aem.live.<br>
+    Search timings measured on this machine: Intel i5-8300H, 4 cores, 15.8 GB RAM, no GPU.<br>
+    Recall figure in the eval example is illustrative &mdash; the real number arrives
+    with your first <code>askdocs eval</code> run.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var BUILD = {
+    b1: {
+      title: "1 - Discover: read your files",
+      file: "sources/__init__.py, sources/jsonl.py, sources/markdown.py",
+      body: "Looks in the corpus/ folder for anything it knows how to read, including subfolders. Files starting with a dot or an underscore are skipped, so you can keep notes in there.",
+      points: [
+        "A .jsonl file needs id, url and text on every line",
+        "A .md file uses its front matter, or falls back to the file path and first heading",
+        "Each document gets a fingerprint, so next time only changed ones are re-done"
+      ]
+    },
+    b2: {
+      title: "2 - Clean: remove the junk",
+      file: "normalize.py",
+      body: "Documents exported from a website carry a lot that is not writing. On your corpus this removes 40.7% of all characters without losing a word of content.",
+      points: [
+        "Deletes boxes that repeat the page's own title and description",
+        "Rewrites table rows as sentences, so a row still makes sense on its own",
+        "Saves the section links on the way past, for precise citations",
+        "Leaves code examples completely untouched",
+        "Anything it does not recognise is kept, never deleted"
+      ]
+    },
+    b3: {
+      title: "3 - Chunk: cut into slices",
+      file: "chunk.py",
+      body: "Cuts each document at its headings, then packs small sections together so no slice is uselessly short. Your 183 documents become 678 chunks of about 459 tokens each.",
+      points: [
+        "Each slice is labelled with a breadcrumb: Page > Section",
+        "That label is searched along with the text, so slices from different pages stay distinguishable",
+        "A section the author gave its own link becomes its own slice, so a citation lands exactly on it",
+        "Anything too big to slice at a heading is cut at a paragraph break instead"
+      ]
+    },
+    b4: {
+      title: "4 - Embed: turn to numbers",
+      file: "ollama.py, pipeline.py",
+      body: "Every slice is sent to the local embedding model, which returns a list of numbers describing what it means. This is the slow part of building, and the only part that needs a model.",
+      points: [
+        "Done in batches of 16",
+        "Numbers are scaled so comparing two of them later is a single fast operation",
+        "Re-running only re-does documents whose fingerprint changed",
+        "The model's name is saved with the index, so a mismatch later is caught rather than silently wrong"
+      ]
+    }
+  };
+
+  var ASK = {
+    q1: {
+      title: "1 - Skills: is there a shortcut?",
+      file: "skills/__init__.py",
+      body: "Before searching anything, askdocs asks its skills whether any of them owns this question. If one does, it answers directly and everything else is skipped.",
+      points: [
+        "\"How many pages are indexed?\" is answered here, instantly",
+        "The documents cannot answer that - they do not know they were indexed",
+        "Without this, retrieval would hand a small model five random chunks and let it invent a number"
+      ]
+    },
+    q2: {
+      title: "2 - Embed: your question, as numbers",
+      file: "ollama.py",
+      body: "Your question goes through the same embedding model the chunks did, producing numbers that can be compared with theirs.",
+      points: [
+        "It must be the same model - numbers from two models mean different things",
+        "askdocs checks this and refuses rather than returning the wrong results silently",
+        "Takes a few milliseconds"
+      ]
+    },
+    q3: {
+      title: "3 - Search: two ways at once",
+      file: "retrieve.py, store.py",
+      body: "Searches by meaning and by keyword at the same time, takes the best 25 from each, and merges them into a final five.",
+      points: [
+        "By meaning: finds pages that answer the question in different words",
+        "By keyword: finds exact things like error codes and file names",
+        "Merged by position rather than score, because the two scores are not comparable numbers",
+        "Takes about a millisecond across all 678 chunks"
+      ]
+    },
+    q4: {
+      title: "4 - Gate: is any of this good enough?",
+      file: "grounding.py",
+      body: "The first guard. If nothing found scores above a floor, askdocs stops here and says the documentation does not cover it - without calling the model at all.",
+      points: [
+        "Handing a small model irrelevant context is asking it to invent something",
+        "Also saves you 40 seconds of waiting for an answer that was never going to be usable",
+        "The floor is adjustable in askdocs.toml"
+      ]
+    },
+    q5: {
+      title: "5 - Answer: the slow part",
+      file: "answer.py, ollama.py",
+      body: "The five chunks are pasted into a prompt above your question, with each one's URL and title attached, and the local model writes an answer. Words stream out as they are produced.",
+      points: [
+        "The instructions say: use only these sources, cite them, and refuse if they do not answer it",
+        "Roughly 2,300 tokens of your documentation goes in - not all 380,000",
+        "About 30-50 seconds on this machine, which is why it streams",
+        "Nothing here reaches the network"
+      ]
+    },
+    q6: {
+      title: "6 - Check what it actually said",
+      file: "grounding.py",
+      body: "The second and third guards. Ordinary code reads the finished answer and verifies it against what was really retrieved.",
+      points: [
+        "Every link cited must be one that was in the prompt - anything else was invented",
+        "A long answer citing nothing at all is treated as unsupported",
+        "A failure prints a loud warning, writes the reason to the log, and exits with an error code",
+        "None of this depends on the model choosing to behave"
+      ]
+    }
+  };
+
+  function wire(map, readerId, ids) {
+    var reader = document.getElementById(readerId);
+    var nodes = ids.map(function (id) { return document.getElementById(id); });
+
+    function render(id) {
+      var d = map[id];
+      if (!d) return;
+      reader.innerHTML =
+        "<h4>" + d.title + "</h4>" +
+        "<span class=\"file\">" + d.file + "</span>" +
+        "<p>" + d.body + "</p>" +
+        "<ul>" + d.points.map(function (p) { return "<li>" + p + "</li>"; }).join("") + "</ul>";
+      nodes.forEach(function (n) { n.setAttribute("aria-pressed", String(n.id === id)); });
+    }
+
+    nodes.forEach(function (n) {
+      n.addEventListener("click", function () { render(n.id); });
+      n.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); render(n.id); }
+      });
+    });
+    render(ids[0]);
+  }
+
+  wire(BUILD, "buildRead", ["b1", "b2", "b3", "b4"]);
+  wire(ASK, "askRead", ["q1", "q2", "q3", "q4", "q5", "q6"]);
+})();
+</script>

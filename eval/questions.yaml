@@ -1,0 +1,127 @@
+# The golden set - the single thing that separates this from a demo.
+#
+# Rules for adding to it:
+#
+#   1. Write the question the way someone would actually type it. Copying a
+#      heading verbatim makes recall trivially 100% and the metric meaningless,
+#      so these are deliberately paraphrases.
+#   2. `expect_urls` lists every page that legitimately answers it. Matching
+#      ignores the anchor - recall asks whether the right page was found.
+#   3. Include unanswerable questions. A small local model's failure mode is
+#      inventing a plausible answer, and this is the only thing that catches it.
+#
+# Run:  askdocs eval            (retrieval only - fast)
+#       askdocs eval --refusal  (also checks it declines - slow, needs the chat model)
+
+# ---------------------------------------------------------------- concepts
+
+- question: Does it rebuild the whole site when I change one page?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+  note: paraphrase of the SSG question - never says "static site generator"
+
+- question: Why is it so quick to load?
+  expect_urls: ["https://www.aem.live/docs/faq", "https://www.aem.live/developer/keeping-it-100"]
+
+- question: Is this the same thing as a headless CMS?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: What did this used to be called before it was renamed?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: What Lighthouse number should I be aiming for?
+  expect_urls: ["https://www.aem.live/docs/faq", "https://www.aem.live/developer/keeping-it-100"]
+
+- question: Which browsers will this work in?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+# ---------------------------------------------------------------- commercial
+
+- question: What does it cost to use?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: Do I need to buy an enterprise licence first?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: Can I use this if I do not have full AEM Sites?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+# ---------------------------------------------------------------- fit
+
+- question: Is this a sensible choice for a very large website?
+  expect_urls: ["https://www.aem.live/docs/faq", "https://www.aem.live/docs/large-sites"]
+
+- question: Would this work for a small online shop?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: Can I use it just for marketing landing pages?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: We run several brands in different countries - does that work?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: Can it sit alongside a CMS we already have?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: Can I put content behind a login?
+  expect_urls:
+    - "https://www.aem.live/docs/faq"
+    - "https://www.aem.live/developer/authentication-setup-site-for-aem-authoring"
+
+# ---------------------------------------------------------------- authoring
+
+- question: How do I write pages - do I need to learn a new editor?
+  expect_urls: ["https://www.aem.live/docs/authoring"]
+
+- question: How do I add a picture to a page?
+  expect_urls: ["https://www.aem.live/docs/authoring"]
+
+- question: Is there an approval process before something goes live?
+  expect_urls: ["https://www.aem.live/docs/faq"]
+
+- question: How do I set the description that shows up in Google for many pages at once?
+  expect_urls: ["https://www.aem.live/docs/bulk-metadata"]
+
+- question: How do I forward an old URL to a new one?
+  expect_urls: ["https://www.aem.live/docs/redirects"]
+
+# ---------------------------------------------------------------- developer
+
+- question: What does AEM_BACKEND_FETCH_FAILED mean?
+  expect_urls: ["https://www.aem.live/developer/admin-errors"]
+  note: exact identifier - this is the case BM25 exists to catch, not vectors
+
+- question: My preview says the file cannot be found, what is wrong?
+  expect_urls: ["https://www.aem.live/developer/admin-errors"]
+
+- question: Are there ready-made components I can start from?
+  expect_urls: ["https://www.aem.live/developer/block-collection"]
+
+- question: How do I turn a spreadsheet into JSON I can query?
+  expect_urls: ["https://www.aem.live/developer/spreadsheets"]
+
+- question: How does the search index get built?
+  expect_urls: ["https://www.aem.live/developer/indexing"]
+
+- question: How do I get a sitemap generated?
+  expect_urls: ["https://www.aem.live/developer/sitemap"]
+
+# ------------------------------------------------- must be declined, not guessed
+#
+# Nothing in this corpus answers these. A model that produces a confident
+# answer here is the failure mode that matters most, because it is invisible.
+
+- question: What is the capital city of Australia?
+  unanswerable: true
+  note: general knowledge - must not answer from training
+
+- question: How do I configure a Kubernetes ingress controller for this?
+  unanswerable: true
+  note: plausible-sounding but genuinely absent - the dangerous kind
+
+- question: What is the exact SLA uptime percentage guaranteed in the contract?
+  unanswerable: true
+  note: sounds like it should be documented; it is not
+
+- question: Who is the current CEO of Adobe?
+  unanswerable: true
+  note: about the vendor, not the product
