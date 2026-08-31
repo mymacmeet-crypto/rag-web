@@ -102,6 +102,60 @@ def test_wrapped_cell_is_rejoined():
     assert "close to the visitor" in result.text
 
 
+def test_list_items_in_a_cell_keep_their_own_lines():
+    """A bullet opens with the same character as a wrapped identifier.
+
+    Real shape from /developer/ue-trial, where the whole sign-up pitch lives in
+    one cell. Joining these produced `how you can:- Build and deploy`.
+    """
+    text = """+------------------------------------------------+
+| Columns                                        |
++------------------------------------------------+
+| Learn in the tutorial how you can:              |
+| - Build and deploy a website                    |
+| - Use AEM to manage your content                |
++------------------------------------------------+
+"""
+    result = normalize(text)
+    assert "can:- Build" not in result.text
+    assert "- Build and deploy a website" in result.text
+    assert "- Use AEM to manage your content" in result.text
+
+
+def test_heading_in_a_cell_keeps_its_own_line():
+    """A heading absorbed into the previous line is a section chunk.py never sees.
+
+    chunk.py cuts at h2/h3, so this is not only a readability fix - it restores
+    boundaries the chunker was blind to.
+    """
+    text = """+------------------------------------------------+
+| Columns                                        |
++------------------------------------------------+
+| ### Sign up for the tutorial                    |
+| It takes about a minute.                        |
+| ### What you will build                         |
+| A working site.                                 |
++------------------------------------------------+
+"""
+    result = normalize(text)
+    assert "tutorial ### What" not in result.text
+    for line in ("### Sign up for the tutorial", "### What you will build"):
+        assert any(l.strip() == line for l in result.text.splitlines()), line
+
+
+def test_wrapped_identifier_still_rejoins_without_a_space():
+    """The list fix must not break the case the identifier rule exists for."""
+    text = """+------------------------------------------------+
+| Columns                                        |
++------------------------------------------------+
+| the config lives in helix-                      |
+| query.yaml at the root                          |
++------------------------------------------------+
+"""
+    result = normalize(text)
+    assert "helix-query.yaml" in result.text
+
+
 def test_grid_table_inside_a_code_fence_is_untouched():
     """Developer docs show grid tables as examples. Flattening one corrupts
     exactly the content the reader came for."""

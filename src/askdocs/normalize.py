@@ -45,6 +45,10 @@ _HEADING = re.compile(r"^#{1,6}\s+(.*\S)\s*$")
 _IMAGE_REF = re.compile(r"!\[[^\]]*\]\[[^\]]+\]")
 _IMAGE_DEF = re.compile(r"^\[[^\]]+\]:\s*\S+.*$", re.MULTILINE)
 _BLANK_RUN = re.compile(r"\n{3,}")
+# A markdown list marker: a bullet or an ordered number followed by a space.
+# The trailing \S matters - it is what separates `- Build the site` from the
+# hyphen that continues a wrapped identifier.
+_LIST_ITEM = re.compile(r"^(?:[-*+]|\d+[.)])\s+\S")
 
 
 @dataclass
@@ -227,13 +231,27 @@ def _tidy(cell: str) -> str:
     identifier: a cell holding `AEM_BACKEND_FETCH_FAILED` wraps as
     `AEM_BACKEND_` / `FETCH_FAILED`, and joining those with a space destroys
     the exact-match lookup that keyword search exists to provide.
+
+    A markdown list item is not a wrapped line, so it keeps its own line. It
+    has to be checked before the identifier rule: `- Build the site` opens with
+    the same character as `-query.yaml`, so the identifier rule would glue it
+    onto the previous line and produce `how you can:- Build the site`.
+
+    A heading is kept on its own line for the same reason, and so is whatever
+    follows it - a heading with body text welded to its tail stops being a
+    heading. This one also has a downstream consequence: chunk.py cuts at
+    h2/h3, so a heading absorbed into a neighbouring line is a section boundary
+    the chunker never sees.
     """
     parts = [segment.strip() for segment in cell.split("\n") if segment.strip()]
     if not parts:
         return ""
     joined = parts[0]
     for part in parts[1:]:
-        if joined.endswith(("_", "-", "/")) or part.startswith(("_", "-")):
+        previous = joined.rsplit("\n", 1)[-1]
+        if _LIST_ITEM.match(part) or _HEADING.match(part) or _HEADING.match(previous):
+            joined += "\n" + part
+        elif joined.endswith(("_", "-", "/")) or part.startswith(("_", "-")):
             joined += part
         else:
             joined += " " + part
