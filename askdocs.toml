@@ -42,7 +42,9 @@ temperature = 0.0
 max_tokens  = 800
 
 [retrieve]
-top_k      = 5
+# More sources means more chance the answer is fully present rather than
+# partly, which is what pushes a small model into refusing.
+top_k      = 8
 candidates = 25
 rrf_k      = 60
 
