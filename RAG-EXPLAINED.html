@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inside askdocs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600;700&display=swap">
+<style>
+/* ---------- tokens: complete light palette on bare :root ---------- */
+:root {
+  --ground:      #f4f4f8;
+  --surface:     #ffffff;
+  --surface-alt: #eceaf3;
+  --ink:         #1b1a22;
+  --ink-soft:    #43414f;
+  --dim:         #6c6a7d;
+  --rule:        #dcdbe4;
+  --rule-soft:   #e8e7ee;
+
+  --vector:      #5b54c9;
+  --vector-bg:   #ecebfa;
+  --keyword:     #b8720e;
+  --keyword-bg:  #f9f0df;
+  --guard:       #b0304a;
+  --guard-bg:    #fbebee;
+  --ok:          #1f7a5c;
+  --ok-bg:       #e6f4ef;
+
+  --shadow: 0 1px 2px rgba(27, 26, 34, .05), 0 8px 24px rgba(27, 26, 34, .05);
+
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --sans:  "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono:  "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --measure: 68ch;
+  --gutter: clamp(1.25rem, 5vw, 3rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #131219;
+    --surface:     #1c1b25;
+    --surface-alt: #24222f;
+    --ink:         #eae9f2;
+    --ink-soft:    #c3c1d1;
+    --dim:         #8f8da1;
+    --rule:        #322f3f;
+    --rule-soft:   #282634;
+
+    --vector:      #a49dff;
+    --vector-bg:   #241f4a;
+    --keyword:     #e5a344;
+    --keyword-bg:  #3a2b12;
+    --guard:       #ff8098;
+    --guard-bg:    #3d1a25;
+    --ok:          #52c99c;
+    --ok-bg:       #123529;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:      #131219;
+  --surface:     #1c1b25;
+  --surface-alt: #24222f;
+  --ink:         #eae9f2;
+  --ink-soft:    #c3c1d1;
+  --dim:         #8f8da1;
+  --rule:        #322f3f;
+  --rule-soft:   #282634;
+
+  --vector:      #a49dff;
+  --vector-bg:   #241f4a;
+  --keyword:     #e5a344;
+  --keyword-bg:  #3a2b12;
+  --guard:       #ff8098;
+  --guard-bg:    #3d1a25;
+  --ok:          #52c99c;
+  --ok-bg:       #123529;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { max-width: 100%; }
+
+a {
+  color: var(--vector);
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--vector);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: .875em;
+  background: var(--surface-alt);
+  padding: .12em .38em;
+  border-radius: 3px;
+}
+
+/* ---------- page shell ---------- */
+.page {
+  max-width: 74rem;
+  margin: 0 auto;
+  padding: 0 var(--gutter) 6rem;
+}
+
+.flow-text {
+  max-width: var(--measure);
+}
+
+section {
+  padding-top: 4.5rem;
+}
+
+/* ---------- typography scale ---------- */
+h1, h2, h3 {
+  font-family: var(--serif);
+  text-wrap: balance;
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2.4rem, 6vw, 3.9rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -.022em;
+}
+
+h2 {
+  font-size: clamp(1.55rem, 3.2vw, 2.05rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -.014em;
+}
+
+h3 {
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+p { margin: 0; }
+
+.stack     { display: flex; flex-direction: column; gap: 1.15rem; }
+.stack-sm  { display: flex; flex-direction: column; gap: .6rem; }
+.stack-lg  { display: flex; flex-direction: column; gap: 2rem; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: .72rem;
+  font-weight: 500;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.lede {
+  font-size: 1.16rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.dim { color: var(--dim); }
+
+.mono { font-family: var(--mono); }
+
+/* ---------- masthead ---------- */
+.masthead {
+  padding: clamp(3.5rem, 9vw, 6rem) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.masthead-rule {
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--vector) 0%, var(--vector) 38%, var(--keyword) 38%, var(--keyword) 62%, var(--rule) 62%);
+  border-radius: 2px;
+}
+
+.masthead h1 { max-width: 18ch; }
+
+.masthead .lede { max-width: 56ch; }
+
+/* ---------- stat strip ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 1.4rem;
+}
+
+.stat {
+  background: var(--surface);
+  padding: 1.05rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: .18rem;
+}
+
+.stat-value {
+  font-family: var(--serif);
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* ---------- section heads ---------- */
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 2rem;
+}
+
+.section-head .lede { max-width: var(--measure); }
+
+/* ---------- pipeline band ---------- */
+.band {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  box-shadow: var(--shadow);
+}
+
+.band-caption {
+  font-family: var(--mono);
+  font-size: .74rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  flex-wrap: wrap;
+}
+
+.band-caption .tick {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--vector);
+  flex: none;
+}
+
+.band-caption .tick.amber { background: var(--keyword); }
+
+.pipeline {
+  display: grid;
+  gap: .5rem;
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  gap: 1rem;
+  align-items: start;
+  padding: .9rem 0;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.stage:first-child { border-top: 0; padding-top: 0; }
+
+.stage-index {
+  font-family: var(--mono);
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--dim);
+  padding-top: .18rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stage-body {
+  display: flex;
+  flex-direction: column;
+  gap: .32rem;
+  min-width: 0;
+}
+
+.stage-file {
+  font-family: var(--mono);
+  font-size: .88rem;
+  font-weight: 500;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.stage-what {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.stage-why {
+  font-size: .93rem;
+  color: var(--dim);
+  max-width: 62ch;
+}
+
+.stage-why strong { color: var(--ink-soft); font-weight: 600; }
+
+/* ---------- two-track ---------- */
+.tracks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.track {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1.3rem;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+}
+
+.track-label {
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.track-label::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.track.is-vector  { border-color: var(--vector); }
+.track.is-vector  .track-label { color: var(--vector); }
+.track.is-keyword { border-color: var(--keyword); }
+.track.is-keyword .track-label { color: var(--keyword); }
+
+.track h3 { font-family: var(--sans); font-size: 1rem; }
+
+.track ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  font-size: .95rem;
+  color: var(--ink-soft);
+}
+
+.fusion {
+  margin-top: 1rem;
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  padding: 1.2rem 1.3rem;
+  background: var(--surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.fusion .track-label { color: var(--ink-soft); }
+.fusion .track-label::before {
+  background: linear-gradient(90deg, var(--vector) 50%, var(--keyword) 50%);
+}
+
+/* ---------- guards ---------- */
+.guards {
+  display: grid;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.guard {
+  background: var(--surface);
+  padding: 1.2rem 1.35rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .35rem 1rem;
+  align-items: baseline;
+}
+
+.guard-when {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--guard);
+  white-space: nowrap;
+}
+
+.guard h3 { grid-column: 2; font-family: var(--sans); font-size: 1rem; }
+.guard p  { grid-column: 2; font-size: .95rem; color: var(--dim); max-width: 60ch; }
+
+/* ---------- callout ---------- */
+.callout {
+  border-left: 3px solid var(--keyword);
+  background: var(--keyword-bg);
+  padding: 1.1rem 1.3rem;
+  border-radius: 0 6px 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.callout .eyebrow { color: var(--keyword); }
+.callout p { font-size: .97rem; color: var(--ink-soft); max-width: 62ch; }
+
+/* ---------- tables ---------- */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: .93rem;
+  min-width: 30rem;
+}
+
+thead th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--dim);
+  font-weight: 500;
+  padding: .8rem 1rem;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: .7rem 1rem;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+  color: var(--ink-soft);
+}
+
+tbody tr:last-child td { border-bottom: 0; }
+
+td.file {
+  font-family: var(--mono);
+  font-size: .85rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+td.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.group-row td {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: var(--surface-alt);
+  padding-top: .55rem;
+  padding-bottom: .55rem;
+}
+
+/* bar column for the chunk distribution */
+.bar {
+  display: block;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--vector);
+  min-width: 3px;
+}
+
+.bar.is-outlier { background: var(--keyword); }
+
+/* ---------- closing ---------- */
+.closing {
+  margin-top: 4.5rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 2.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.closing h2 { max-width: 24ch; }
+
+.closing p { max-width: var(--measure); color: var(--ink-soft); }
+
+footer {
+  margin-top: 3.5rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--rule-soft);
+  font-family: var(--mono);
+  font-size: .74rem;
+  color: var(--dim);
+  display: flex;
+  gap: .6rem 1.4rem;
+  flex-wrap: wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<main class="page">
+
+  <!-- ================= masthead ================= -->
+  <header class="masthead">
+    <div class="masthead-rule"></div>
+    <p class="eyebrow">askdocs &middot; how it works</p>
+    <h1>How this RAG works</h1>
+    <p class="lede">
+      The model has never read your AEM documentation and never will. Everything in this
+      codebase exists to find the right paragraphs, hand them over, and catch the answer
+      if it drifts.
+    </p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-value">183</span>
+        <span class="stat-label">pages in</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">678</span>
+        <span class="stat-label">chunks out</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">2.1 MB</span>
+        <span class="stat-label">whole index</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">1.2 ms</span>
+        <span class="stat-label">per search</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">0</span>
+        <span class="stat-label">network calls</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= the idea ================= -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">The idea</p>
+      <h2>Don't ask it to remember. Hand it the page.</h2>
+    </div>
+
+    <div class="stack flow-text">
+      <p>
+        RAG stands for <strong>Retrieval Augmented Generation</strong>. Strip the jargon and
+        it is one move: instead of hoping a language model memorised your documentation,
+        you find the handful of paragraphs that actually answer the question, paste them
+        into the prompt, and say <em>answer using only these</em>.
+      </p>
+      <p>
+        That move creates two new problems, and this repository is mostly about those two.
+        First, finding the right paragraphs is hard &mdash; the words someone types rarely
+        match the words on the page. Second, a small local model handed irrelevant context
+        does not go quiet. It produces something fluent, plausible and wrong, with exactly
+        the confidence of a correct answer.
+      </p>
+      <p>
+        So the work splits across two clocks. <strong>Build time</strong> runs occasionally
+        and turns 183 pages into something searchable. <strong>Ask time</strong> runs on every
+        question and has to be fast, and careful.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= build time ================= -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">Clock one &middot; <code>askdocs index</code></p>
+      <h2>Build time: 183 pages become 678 searchable pieces</h2>
+      <p class="lede">
+        Slow, occasional, entirely offline. Five steps, each one a file, each one handing
+        its output to the next.
+      </p>
+    </div>
+
+    <div class="band">
+      <p class="band-caption"><span class="tick"></span> corpus &rarr; index</p>
+
+      <div class="pipeline">
+
+        <div class="stage">
+          <span class="stage-index">01</span>
+          <div class="stage-body">
+            <span class="stage-file">sources/jsonl.py &middot; sources/markdown.py &middot; sources/__init__.py</span>
+            <p class="stage-what">Read the files.</p>
+            <p class="stage-why">
+              Each line of <code>aem-live.jsonl</code> becomes a <strong>Document</strong>
+              &mdash; id, url, title, text. A registry picks the right reader by file
+              extension, which is why nothing further down the pipeline knows or cares where
+              the documents came from. Adding a new source never touches the pipeline.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">02</span>
+          <div class="stage-body">
+            <span class="stage-file">normalize.py</span>
+            <p class="stage-what">Scrub the junk.</p>
+            <p class="stage-why">
+              The least glamorous file, doing the most work. AEM pages exported to Markdown
+              draw every block as an ASCII box table &mdash; <code>+---+---+</code> rules and
+              pipes. On this corpus that box art is <strong>40.7% of every character</strong>.
+              Useless boxes get deleted; useful ones (error-code tables, card lists) get
+              rewritten as plain sentences. Anchor ids are harvested on the way out, which is
+              what lets a citation link to the exact section rather than the top of the page.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">03</span>
+          <div class="stage-body">
+            <span class="stage-file">chunk.py</span>
+            <p class="stage-what">Cut each page into pieces.</p>
+            <p class="stage-why">
+              Slices at every <code>##</code> heading, then packs small neighbours together up
+              to roughly 700 tokens. Every piece gets a <strong>breadcrumb</strong> &mdash;
+              <em>Page &gt; Section</em> &mdash; glued to its front. That breadcrumb matters
+              more than it looks: two chunks both headed &ldquo;Limits&rdquo; from different
+              pages are nearly identical to a machine, and the breadcrumb is the only thing
+              telling them apart.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">04</span>
+          <div class="stage-body">
+            <span class="stage-file">ollama.py</span>
+            <p class="stage-what">Turn each piece into numbers.</p>
+            <p class="stage-why">
+              Every chunk goes to the local Ollama server and comes back as 768 numbers
+              describing its meaning. Written against the Python standard library with no
+              <code>requests</code> dependency, because this has to install and run on a
+              machine with no internet.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">05</span>
+          <div class="stage-body">
+            <span class="stage-file">store.py</span>
+            <p class="stage-what">Write it to disk.</p>
+            <p class="stage-why">
+              Three files land in <code>index/</code>: the chunk text, the number vectors, and
+              a receipt recording which model built it and when. A keyword index is built in
+              memory alongside. There is deliberately <strong>no vector database</strong>
+              &mdash; 678 &times; 768 numbers is 2.1 MB, small enough that a plain matrix
+              multiply returns <em>exact</em> nearest neighbours in about a millisecond. The
+              write is atomic, so a crash mid-build never leaves a half-made index behind.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="stack" style="margin-top: 1.5rem;">
+      <p class="flow-text dim" style="font-size: .95rem;">
+        <code>pipeline.py</code> conducts those five steps. It also hashes every page, so a
+        re-index only re-embeds the pages that actually changed.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= ask time ================= -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">Clock two &middot; <code>askdocs ask</code></p>
+      <h2>Ask time: seven steps, three of them refusals</h2>
+      <p class="lede">
+        Runs on every question. Note how much of it is not retrieval or generation at all,
+        but checking.
+      </p>
+    </div>
+
+    <div class="band">
+      <p class="band-caption"><span class="tick amber"></span> question &rarr; answer</p>
+
+      <div class="pipeline">
+
+        <div class="stage">
+          <span class="stage-index">01</span>
+          <div class="stage-body">
+            <span class="stage-file">skills/</span>
+            <p class="stage-what">Can a skill just answer this outright?</p>
+            <p class="stage-why">
+              An escape hatch for questions the documents cannot answer about themselves.
+              &ldquo;How many pages are indexed?&rdquo; is not in any document &mdash; the
+              documents do not know they were indexed. Retrieval would return five arbitrary
+              chunks and a small model would invent a number from them. So a skill catches
+              the question by pattern and answers from the manifest. Instant, and no
+              opportunity to make anything up.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">02</span>
+          <div class="stage-body">
+            <span class="stage-file">ollama.py</span>
+            <p class="stage-what">Turn the question into numbers too.</p>
+            <p class="stage-why">
+              Same embedding model that built the index &mdash; and the CLI refuses to
+              continue if the setting has changed since. Vectors from two different models
+              are not comparable, and the failure is silent: you would still get five chunks
+              back, simply the wrong five, with no error anywhere.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">03</span>
+          <div class="stage-body">
+            <span class="stage-file">retrieve.py</span>
+            <p class="stage-what">Find the five best chunks, two different ways.</p>
+            <p class="stage-why">
+              The heart of the system, and the section below is about nothing else.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">04</span>
+          <div class="stage-body">
+            <span class="stage-file">grounding.py &mdash; guard one</span>
+            <p class="stage-what">Nothing good came back? Stop here.</p>
+            <p class="stage-why">
+              If the best chunk scores below a floor, refuse <em>without calling the model at
+              all</em>. Handing five irrelevant passages to a small model is an invitation to
+              invent, and it obliges.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">05</span>
+          <div class="stage-body">
+            <span class="stage-file">answer.py</span>
+            <p class="stage-what">Build the prompt and stream the reply.</p>
+            <p class="stage-why">
+              The prompt is the whole mechanism: use only these sources, say
+              <em>the documentation provided does not answer this</em> if they fall short,
+              cite the URL of everything you used. The chunks arrive carrying their url,
+              title and breadcrumb &mdash; without those the model has five anonymous walls of
+              text and can cite nothing.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">06</span>
+          <div class="stage-body">
+            <span class="stage-file">grounding.py &mdash; guards two and three</span>
+            <p class="stage-what">Check the citations are real.</p>
+            <p class="stage-why">
+              Every URL in the answer must be one that was actually in the prompt, and a
+              substantive answer must cite something.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="stage-index">07</span>
+          <div class="stage-body">
+            <span class="stage-file">logs.py</span>
+            <p class="stage-what">Write down what happened.</p>
+            <p class="stage-why">
+              One JSON line per query: the question, which chunk ids came back, the timings,
+              whether grounding passed. The chunk ids are the valuable part &mdash; almost
+              every bad answer is a retrieval problem wearing a generation costume.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= two-track retrieval ================= -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">The centrepiece &middot; <code>retrieve.py</code></p>
+      <h2>Two searches, because neither one is good enough alone</h2>
+      <p class="lede">
+        Every question runs through both, and the results are merged. They fail in opposite
+        directions, which is exactly why they are paired.
+      </p>
+    </div>
+
+    <div class="tracks">
+      <div class="track is-vector">
+        <p class="track-label">Vector search</p>
+        <h3>Understands meaning, forgets exact strings</h3>
+        <ul>
+          <li>Matches &ldquo;how do I make it fast&rdquo; to a page about performance, with no shared words.</li>
+          <li>Handles paraphrase, synonyms, roundabout phrasing.</li>
+          <li>Weak on rare literal strings &mdash; the numbers for <code>AEM_BACKEND_FETCH_FAILED</code> look much like the numbers for any other error code.</li>
+        </ul>
+      </div>
+
+      <div class="track is-keyword">
+        <p class="track-label">Keyword search &middot; BM25</p>
+        <h3>Nails exact strings, misses rewording</h3>
+        <ul>
+          <li>Finds <code>helix-query.yaml</code> and <code>AEM_BACKEND_FETCH_FAILED</code> instantly.</li>
+          <li>Indexes identifiers whole <em>and</em> split, so &ldquo;backend fetch failed&rdquo; finds the error code too.</li>
+          <li>Blind to anything worded differently from the page.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="fusion">
+      <p class="track-label">Merging them &middot; Reciprocal Rank Fusion</p>
+      <p style="font-size: .97rem; color: var(--ink-soft); max-width: 62ch;">
+        The two are combined by <strong>rank position</strong>, not by score. That is a
+        deliberate choice: a similarity of 0.82 and a BM25 score of 14.3 are not the same
+        kind of number, and adding them means inventing a scale factor and re-tuning it
+        every time either side changes. Ranking sidesteps the problem entirely &mdash;
+        first place is first place on both lists.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= the guards ================= -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">The guards &middot; <code>grounding.py</code></p>
+      <h2>Three checks that don't depend on the model behaving</h2>
+      <p class="lede">
+        Prompt instructions alone do not stop invention. A small model follows them most of
+        the time, and &ldquo;most of the time&rdquo; is not a guarantee you can put in front
+        of users. So each check is mechanical, and none needs a second model call.
+      </p>
+    </div>
+
+    <div class="guards">
+      <div class="guard">
+        <span class="guard-when">Before</span>
+        <h3>Refuse when nothing relevant was found</h3>
+        <p>
+          If the top chunk scores below the floor, the question never reaches the model.
+          Cheapest guard in the system, and the one that prevents the most damage.
+        </p>
+      </div>
+      <div class="guard">
+        <span class="guard-when">After</span>
+        <h3>Every cited URL must have been retrieved</h3>
+        <p>
+          A URL that was never in the prompt is fabricated by definition. This is the most
+          damaging failure to let through, because a citation is precisely what makes a
+          wrong answer look trustworthy.
+        </p>
+      </div>
+      <div class="guard">
+        <span class="guard-when">After</span>
+        <h3>A real answer must cite something</h3>
+        <p>
+          Either it came from the sources, in which case name them, or it did not. An
+          ungrounded answer also exits non-zero, so the whole thing stays scriptable.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= where 678 comes from ================= -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">Reading the numbers</p>
+      <h2>Where 678 comes from, when the file has 183 lines</h2>
+      <p class="lede">
+        Both numbers are right. 183 is how many pages were scraped; 678 is how many pieces
+        those pages were cut into. On average each page becomes about 3.7 chunks, though the
+        median is 2 &mdash; most pages are short.
+      </p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <caption class="eyebrow" style="text-align:left; padding: .9rem 1rem 0; caption-side: top;">
+          Chunks produced per page
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Chunks made</th>
+            <th scope="col">Pages</th>
+            <th scope="col" style="width: 45%;">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="num">60</td><td><span class="bar" style="width: 41%;"></span></td></tr>
+          <tr><td class="num">2</td><td class="num">36</td><td><span class="bar" style="width: 25%;"></span></td></tr>
+          <tr><td class="num">3</td><td class="num">28</td><td><span class="bar" style="width: 19%;"></span></td></tr>
+          <tr><td class="num">4</td><td class="num">27</td><td><span class="bar" style="width: 18%;"></span></td></tr>
+          <tr><td class="num">5 &ndash; 13</td><td class="num">31</td><td><span class="bar" style="width: 21%;"></span></td></tr>
+          <tr><td class="num">146</td><td class="num">1</td><td><span class="bar is-outlier" style="width: 4%;"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout" style="margin-top: 1.5rem;">
+      <p class="eyebrow">The outlier</p>
+      <p>
+        One page &mdash; <strong>Frequently Asked Questions</strong> &mdash; produced 146
+        chunks on its own, over a fifth of the entire index from a single line of the file.
+        That is intentional. When a heading carries its own anchor link, the chunker keeps
+        that section standalone instead of packing it with its neighbours. On an FAQ page
+        every question is an anchored heading, so each question and its answer becomes one
+        chunk. It has to work that way: glue three unrelated questions together and the
+        answer can only link to one of them, so the citation points at the wrong question.
+      </p>
+      <p class="mono" style="font-size: .85rem; color: var(--dim);">
+        182 ordinary pages &asymp; 532 chunks &nbsp;+&nbsp; the FAQ's 146 &nbsp;=&nbsp; 678
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= every file ================= -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">Reference</p>
+      <h2>Every file and what it is for</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">File</th>
+            <th scope="col">Job</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="group-row"><td colspan="2">Entry points</td></tr>
+          <tr><td class="file">cli.py</td><td>The five commands: index, ask, eval, status, env.</td></tr>
+          <tr><td class="file">config.py</td><td>Settings, and a record of where each value came from. CLI flag beats environment variable beats <code>askdocs.toml</code> beats default.</td></tr>
+          <tr><td class="file">pipeline.py</td><td>Runs the build steps in order; hashes pages so a refresh only re-embeds what changed.</td></tr>
+
+          <tr class="group-row"><td colspan="2">Getting documents in</td></tr>
+          <tr><td class="file">sources/__init__.py</td><td>The <code>Document</code> record and the connector registry.</td></tr>
+          <tr><td class="file">sources/jsonl.py</td><td>Reads <code>.jsonl</code> archives.</td></tr>
+          <tr><td class="file">sources/markdown.py</td><td>Reads a folder of <code>.md</code> files, front matter included.</td></tr>
+
+          <tr class="group-row"><td colspan="2">Making them searchable</td></tr>
+          <tr><td class="file">normalize.py</td><td>Strips AEM block box-art &mdash; 40.7% of all characters &mdash; and keeps the anchors.</td></tr>
+          <tr><td class="file">chunk.py</td><td>Cuts pages into 678 pieces, each with a breadcrumb.</td></tr>
+          <tr><td class="file">store.py</td><td>The index itself: chunk text, vectors, keyword index, manifest, atomic save and load.</td></tr>
+
+          <tr class="group-row"><td colspan="2">Answering</td></tr>
+          <tr><td class="file">retrieve.py</td><td>Hybrid search: vectors and BM25, merged by rank.</td></tr>
+          <tr><td class="file">answer.py</td><td>Builds the prompt and streams the reply.</td></tr>
+          <tr><td class="file">grounding.py</td><td>The three anti-invention guards.</td></tr>
+          <tr><td class="file">skills/__init__.py</td><td>Registry for questions retrieval cannot answer.</td></tr>
+          <tr><td class="file">skills/corpus_info.py</td><td>The worked example: &ldquo;how many pages are indexed?&rdquo;</td></tr>
+
+          <tr class="group-row"><td colspan="2">Talking to models</td></tr>
+          <tr><td class="file">ollama.py</td><td>Ollama client &mdash; embeddings, and chat when that backend is selected.</td></tr>
+          <tr><td class="file">mlxlm.py</td><td>Client for <code>mlx_lm.server</code>, the currently configured chat backend. Answers come from here; embeddings still come from Ollama.</td></tr>
+
+          <tr class="group-row"><td colspan="2">Knowing whether it works</td></tr>
+          <tr><td class="file">evaluate.py</td><td>Measures recall@k and the refusal rate. The file that makes this engineering rather than a demo.</td></tr>
+          <tr><td class="file">logs.py</td><td>Append-only query log, one JSON object per question.</td></tr>
+
+          <tr class="group-row"><td colspan="2">Around the package</td></tr>
+          <tr><td class="file">askdocs.toml</td><td>Your settings: corpus location, chunk size, models, thresholds.</td></tr>
+          <tr><td class="file">corpus/</td><td>Input. Drop a <code>.jsonl</code> or <code>.md</code> file in and it gets indexed.</td></tr>
+          <tr><td class="file">index/</td><td>Output. Chunk text, vectors, manifest.</td></tr>
+          <tr><td class="file">eval/questions.yaml</td><td>Test questions with their known-correct page.</td></tr>
+          <tr><td class="file">tests/</td><td>Unit tests over the deterministic parts &mdash; cleaning, chunking, storage, grounding.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= evaluation ================= -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">The number that matters &middot; <code>evaluate.py</code></p>
+      <h2>Recall@k, not vibes</h2>
+    </div>
+
+    <div class="stack flow-text">
+      <p>
+        <code>eval/questions.yaml</code> holds questions paired with the page that should
+        answer them. The harness asks each one and measures <strong>recall@k</strong>: the
+        share of questions where the correct page actually appears among the retrieved
+        chunks.
+      </p>
+      <p>
+        That metric is chosen deliberately. If the right passage never reaches the prompt,
+        no amount of prompt tuning saves the answer &mdash; so retrieval is where the
+        measurement belongs. It also only needs the embedding model, not the chat model,
+        which means it runs in seconds and returns the same result every time.
+      </p>
+      <p>
+        <code>askdocs eval --refusal</code> tests the opposite failure: questions the corpus
+        genuinely cannot answer, checking that the system refuses rather than improvises.
+        That one does need the chat model, and is correspondingly slower.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= closing ================= -->
+  <div class="closing">
+    <p class="eyebrow">In one paragraph</p>
+    <h2>The generation step is the small part</h2>
+    <p>
+      A small local model will produce a confident, fluent, wrong answer whenever you give
+      it bad context. So this codebase spends almost all of its effort at the two ends:
+      <code>normalize.py</code>, <code>chunk.py</code> and <code>retrieve.py</code> making
+      sure good context arrives, and <code>grounding.py</code> with <code>evaluate.py</code>
+      making sure a bad answer gets caught instead of shipped. The part in the middle, where
+      the model writes the prose, is the piece that needed the least work.
+    </p>
+
+    <footer>
+      <span>askdocs</span>
+      <span>183 pages &middot; 678 chunks &middot; 2.1 MB</span>
+      <span>fully offline</span>
+    </footer>
+  </div>
+
+</main>
+
+</body>
+</html>
